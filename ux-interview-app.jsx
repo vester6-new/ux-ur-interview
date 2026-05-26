@@ -170,13 +170,15 @@ const css = `
   /* ── SUBMIT ── */
   .submit-btn {
     display: flex; align-items: center; justify-content: center; gap: 12px;
-    width: fit-content; padding: 16px 36px; border-radius: 999px;
+    width: fit-content; padding: 13px 30px; border-radius: 999px;
     background: var(--ur-blue); color: white; border: none; font-family: inherit;
-    font-size: 16px; font-weight: 700; letter-spacing: 0;
+    font-size: 15px; font-weight: 700; letter-spacing: 0;
     cursor: pointer; transition: background .2s; margin: 8px auto 0;
   }
   .submit-btn:hover { background: var(--ur-blue2); }
   .submit-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .submit-btn.delete-btn { background: var(--ur-orange); color: white; margin: 4px 0 0; }
+  .submit-btn.delete-btn:hover { background: #c95f27; }
 
   /* ── SUCCESS ── */
   .success-wrap { max-width: 480px; margin: 80px auto; padding: 0 24px; text-align: center; }
@@ -205,8 +207,6 @@ const css = `
     cursor: pointer; transition: all .2s;
   }
   .export-btn:hover { border-color: var(--ur-blue); background: rgba(86,160,211,.1); }
-  .delete-btn { color: var(--ur-orange); }
-  .delete-btn:hover { border-color: var(--ur-orange); color: var(--ur-orange); background: rgba(232,119,58,.1); }
 
   .login-wrap { max-width: 420px; margin: 80px auto; padding: 0 24px; }
   .login-card { background: var(--ur-card); border: 1px solid var(--ur-border); border-radius: var(--radius); padding: 28px; }
@@ -652,7 +652,7 @@ function DashboardView({ refreshKey }) {
                   <div className="r-comment"><strong>Friction:</strong> {r.friction || [r.leastControl, r.frustration, r.comment].filter(Boolean).join(" ")}</div>
                 )}
                 {r.makeItTen && <div className="r-comment"><strong>Make it a 10:</strong> {r.makeItTen}</div>}
-                <button className="export-btn delete-btn" onClick={() => handleDelete(r)}>Delete response</button>
+                <button className="submit-btn delete-btn" onClick={() => handleDelete(r)}>Delete response</button>
               </div>
             </div>
           ))}
