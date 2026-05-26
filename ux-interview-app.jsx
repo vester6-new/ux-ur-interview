@@ -76,15 +76,6 @@ const css = `
   /* ── SURVEY ── */
   .survey-wrap { max-width: 680px; margin: 0 auto; padding: 56px 24px 100px; }
 
-  .survey-eyebrow {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--ur-blue); margin-bottom: 20px;
-  }
-  .survey-eyebrow::before {
-    content: ''; display: block; width: 20px; height: 2px; background: var(--ur-blue);
-  }
-
   .survey-title {
     font-size: clamp(28px, 5vw, 42px); font-weight: 700; line-height: 1.1;
     color: var(--ur-white); margin-bottom: 16px; letter-spacing: -0.02em;
@@ -258,8 +249,6 @@ const css = `
 
   .r-right { display: flex; flex-direction: column; gap: 8px; }
   .r-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .r-name { font-size: 14px; font-weight: 600; color: var(--ur-white); }
-  .r-role { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; background: var(--ur-subtle); color: var(--ur-muted); padding: 3px 10px; border-radius: 2px; }
   .r-time { font-size: 10px; color: var(--ur-muted); margin-left: auto; font-variant-numeric: tabular-nums; }
   .r-tags { display: flex; gap: 6px; flex-wrap: wrap; }
   .r-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(86,160,211,.1); color: var(--ur-blue); border: 1px solid rgba(86,160,211,.2); padding: 3px 8px; border-radius: 2px; }
@@ -355,21 +344,15 @@ function ScoreSlider({ name, value, onChange, left, right }) {
 }
 
 function SurveyView({ onSubmitted }) {
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("");
   const [useCase, setUseCase] = useState("");
   const [currentMethod, setCurrentMethod] = useState("");
   const [emoji, setEmoji] = useState(null);
   const [usability, setUsability] = useState(7);
-  const [usefulness, setUsefulness] = useState(7);
   const [control, setControl] = useState(7);
   const [feedback, setFeedback] = useState(7);
-  const [nps, setNps] = useState(7);
   const [tags, setTags] = useState([]);
-  const [leastControl, setLeastControl] = useState("");
-  const [frustration, setFrustration] = useState("");
+  const [friction, setFriction] = useState("");
   const [makeItTen, setMakeItTen] = useState("");
-  const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -379,18 +362,12 @@ function SurveyView({ onSubmitted }) {
     setDone(false);
     setEmoji(null);
     setTags([]);
-    setComment("");
-    setName("");
-    setRole("");
     setUseCase("");
     setCurrentMethod("");
     setUsability(7);
-    setUsefulness(7);
     setControl(7);
     setFeedback(7);
-    setNps(7);
-    setLeastControl("");
-    setFrustration("");
+    setFriction("");
     setMakeItTen("");
   };
 
@@ -400,21 +377,15 @@ function SurveyView({ onSubmitted }) {
     const entry = {
       id: Date.now(),
       ts: new Date().toISOString(),
-      name: name.trim() || "Anonymous",
-      role: role.trim() || "—",
       useCase: useCase.trim(),
       currentMethod: currentMethod.trim(),
       emoji,
       usability,
-      usefulness,
       control,
       feedback,
-      nps,
       tags,
-      leastControl: leastControl.trim(),
-      frustration: frustration.trim(),
+      friction: friction.trim(),
       makeItTen: makeItTen.trim(),
-      comment: comment.trim(),
     };
     await saveResponse(entry);
     setSubmitting(false);
@@ -433,20 +404,8 @@ function SurveyView({ onSubmitted }) {
 
   return (
     <div className="survey-wrap">
-      <div className="survey-eyebrow">Interview · PolyScope X</div>
       <h1 className="survey-title">Share your feedback on the <span>new joystick feature</span></h1>
-      <p className="survey-sub">Rate and comment on your experience. Your input directly shapes the next release.</p>
-
-      <div className="input-row" style={{ marginBottom: 32 }}>
-        <div>
-          <div className="field-label">Name <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
-          <input type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} />
-        </div>
-        <div>
-          <div className="field-label">Role <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
-          <input type="text" placeholder="e.g. Engineer, Designer…" value={role} onChange={e => setRole(e.target.value)} />
-        </div>
-      </div>
+      <p className="survey-sub">Rate and comment on your experience. Your response is anonymous and directly shapes the next release.</p>
 
       <div className="field">
         <div className="field-label">Context before using joystick</div>
@@ -472,10 +431,8 @@ function SurveyView({ onSubmitted }) {
 
       <div className="field-label" style={{ marginBottom: 12 }}>Performance ratings</div>
       <ScoreSlider name="Usability — how easy was it to use?" value={usability} onChange={setUsability} left="1 · Very difficult" right="10 · Effortless" />
-      <ScoreSlider name="Usefulness — does it solve a real problem?" value={usefulness} onChange={setUsefulness} left="1 · Not at all" right="10 · Absolutely" />
       <ScoreSlider name="Control — did you feel in control?" value={control} onChange={setControl} left="1 · Not in control" right="10 · Full control" />
       <ScoreSlider name="Feedback — was it clear what happened?" value={feedback} onChange={setFeedback} left="1 · Unclear" right="10 · Very clear" />
-      <ScoreSlider name="NPS — would you recommend it to a colleague?" value={nps} onChange={setNps} left="1 · Never" right="10 · Definitely" />
 
       <hr className="divider" />
 
@@ -489,23 +446,13 @@ function SurveyView({ onSubmitted }) {
       </div>
 
       <div className="field">
-        <div className="field-label">After use <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
-        <textarea placeholder="When did you feel least in control, if at all?" value={leastControl} onChange={e => setLeastControl(e.target.value)} />
-      </div>
-
-      <div className="field">
-        <div className="field-label">Most frustrating point <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
-        <textarea placeholder="What was the most frustrating or uncertain moment?" value={frustration} onChange={e => setFrustration(e.target.value)} />
+        <div className="field-label">Friction or lack of control <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
+        <textarea placeholder="Where did you feel friction, uncertainty, or lack of control?" value={friction} onChange={e => setFriction(e.target.value)} />
       </div>
 
       <div className="field">
         <div className="field-label">Make it a 10 <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
         <textarea placeholder="What would need to change for this to become a 10/10 experience?" value={makeItTen} onChange={e => setMakeItTen(e.target.value)} />
-      </div>
-
-      <div className="field">
-        <div className="field-label">Additional comments <span style={{ color: "var(--ur-muted)" }}>(optional)</span></div>
-        <textarea placeholder="What worked well? What could be improved? Any specific friction points?" value={comment} onChange={e => setComment(e.target.value)} />
       </div>
 
       <button className="submit-btn" onClick={handleSubmit} disabled={submitting}>
@@ -537,25 +484,19 @@ function DashboardView({ refreshKey }) {
 
   const exportCSV = () => {
     const csvCell = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
-    const header = ["id","timestamp","name","role","use_case","current_method","emoji","usability","usefulness","control","feedback","nps","tags","least_control","frustration","make_it_ten","comment"];
+    const header = ["id","timestamp","use_case","current_method","emoji","usability","control","feedback","tags","friction","make_it_ten"];
     const rows = responses.map(r => [
       r.id,
       r.ts,
-      r.name,
-      r.role,
       r.useCase,
       r.currentMethod,
       r.emoji,
       r.usability,
-      r.usefulness,
       r.control,
       r.feedback,
-      r.nps,
       (r.tags||[]).join("|"),
-      r.leastControl,
-      r.frustration,
+      r.friction || [r.leastControl, r.frustration, r.comment].filter(Boolean).join(" "),
       r.makeItTen,
-      r.comment,
     ].map(csvCell).join(","));
     const blob = new Blob([[header.join(","), ...rows].join("\n")], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ux-responses.csv"; a.click();
@@ -585,10 +526,8 @@ function DashboardView({ refreshKey }) {
           <div className="stats-grid">
             <div className="stat-card"><div className="stat-label">Total responses</div><div className="stat-val white">{responses.length}</div></div>
             <div className="stat-card"><div className="stat-label">Avg usability</div><div className={"stat-val " + scoreColor(avg("usability"))}>{avg("usability")}</div></div>
-            <div className="stat-card"><div className="stat-label">Avg usefulness</div><div className={"stat-val " + scoreColor(avg("usefulness"))}>{avg("usefulness")}</div></div>
             <div className="stat-card"><div className="stat-label">Avg control</div><div className={"stat-val " + scoreColor(avg("control"))}>{avg("control")}</div></div>
             <div className="stat-card"><div className="stat-label">Avg feedback</div><div className={"stat-val " + scoreColor(avg("feedback"))}>{avg("feedback")}</div></div>
-            <div className="stat-card"><div className="stat-label">Avg NPS</div><div className={"stat-val " + scoreColor(avg("nps"))}>{avg("nps")}</div></div>
           </div>
 
           <div className="charts-row">
@@ -623,25 +562,23 @@ function DashboardView({ refreshKey }) {
                 <div className="r-emoji">{r.emoji}</div>
                 <div className="r-scores-col">
                   <div className="r-score-mini"><span className="r-score-mini-label">Use</span><span className="r-score-mini-val">{r.usability}</span></div>
-                  <div className="r-score-mini"><span className="r-score-mini-label">Value</span><span className="r-score-mini-val">{r.usefulness}</span></div>
+                  {typeof r.usefulness === "number" && <div className="r-score-mini"><span className="r-score-mini-label">Value</span><span className="r-score-mini-val">{r.usefulness}</span></div>}
                   {typeof r.control === "number" && <div className="r-score-mini"><span className="r-score-mini-label">Ctrl</span><span className="r-score-mini-val">{r.control}</span></div>}
                   {typeof r.feedback === "number" && <div className="r-score-mini"><span className="r-score-mini-label">Fdbk</span><span className="r-score-mini-val">{r.feedback}</span></div>}
-                  <div className="r-score-mini"><span className="r-score-mini-label">NPS</span><span className="r-score-mini-val">{r.nps}</span></div>
+                  {typeof r.nps === "number" && <div className="r-score-mini"><span className="r-score-mini-label">NPS</span><span className="r-score-mini-val">{r.nps}</span></div>}
                 </div>
               </div>
               <div className="r-right">
                 <div className="r-top">
-                  <span className="r-name">{r.name}</span>
-                  {r.role !== "—" && <span className="r-role">{r.role}</span>}
                   <span className="r-time">{new Date(r.ts).toLocaleString("da-DK", { dateStyle: "medium", timeStyle: "short" })}</span>
                 </div>
                 {r.tags?.length > 0 && <div className="r-tags">{r.tags.map(t => <span className="r-tag" key={t}>{t}</span>)}</div>}
                 {r.useCase && <div className="r-comment"><strong>Use case:</strong> {r.useCase}</div>}
                 {r.currentMethod && <div className="r-comment"><strong>Current method:</strong> {r.currentMethod}</div>}
-                {r.leastControl && <div className="r-comment"><strong>Least control:</strong> {r.leastControl}</div>}
-                {r.frustration && <div className="r-comment"><strong>Frustration:</strong> {r.frustration}</div>}
+                {(r.friction || r.leastControl || r.frustration || r.comment) && (
+                  <div className="r-comment"><strong>Friction:</strong> {r.friction || [r.leastControl, r.frustration, r.comment].filter(Boolean).join(" ")}</div>
+                )}
                 {r.makeItTen && <div className="r-comment"><strong>Make it a 10:</strong> {r.makeItTen}</div>}
-                {r.comment && <div className="r-comment">{r.comment}</div>}
               </div>
             </div>
           ))}
@@ -657,9 +594,11 @@ export default function App({ view = "survey" }) {
     <>
       <style>{css}</style>
       <div className="app">
+        {/*
         <header className="brand-header">
           <img className="brand-logo" src="/ur-teradyne-logo.svg" alt="Universal Robots, a Teradyne company" />
         </header>
+        */}
         {view === "survey"
           ? <SurveyView onSubmitted={() => setRefreshKey(k => k+1)} />
           : <DashboardView refreshKey={refreshKey} />}

@@ -9,40 +9,28 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           'id',
           'ts',
-          'name',
-          'role',
           'useCase',
           'currentMethod',
           'emoji',
           'usability',
-          'usefulness',
           'control',
           'feedback',
-          'nps',
           'tags',
-          'leastControl',
-          'frustration',
+          'friction',
           'makeItTen',
-          'comment',
           'createdAt'
         ]) &&
         request.resource.data.id is number &&
         request.resource.data.ts is string &&
-        request.resource.data.name is string &&
-        request.resource.data.role is string &&
         request.resource.data.useCase is string &&
         request.resource.data.currentMethod is string &&
         request.resource.data.emoji is string &&
         request.resource.data.usability is number &&
-        request.resource.data.usefulness is number &&
         request.resource.data.control is number &&
         request.resource.data.feedback is number &&
-        request.resource.data.nps is number &&
         request.resource.data.tags is list &&
-        request.resource.data.leastControl is string &&
-        request.resource.data.frustration is string &&
+        request.resource.data.friction is string &&
         request.resource.data.makeItTen is string &&
-        request.resource.data.comment is string &&
         request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;
