@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { addDoc, collection, getDocs, getFirestore, orderBy, query, serverTimestamp } from "firebase/firestore";
 
@@ -40,7 +40,7 @@ async function saveResponse(entry) {
 
 // ─── Styles ────────────────────────────────────────────────────────
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -59,40 +59,19 @@ const css = `
     --radius:    4px;
   }
 
-  html, body { background: var(--ur-navy); color: var(--ur-white); font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.5; }
+  html, body { background: var(--ur-navy); color: var(--ur-white); font-family: 'Roboto', sans-serif; font-size: 14px; line-height: 1.5; }
   .app { min-height: 100vh; }
+  h1, h2, h3, .survey-title, .success-title, .dash-title, .stat-val, .slider-num { font-family: 'Red Hat Display', sans-serif; }
 
-  /* ── NAV ── */
-  .nav {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 32px; height: 64px;
+  /* ── HEADER ── */
+  .brand-header {
+    display: flex; align-items: center;
+    padding: 0 32px; height: 72px;
     background: var(--ur-dark);
     border-bottom: 1px solid var(--ur-border);
     position: sticky; top: 0; z-index: 100;
   }
-  .nav-logo {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--ur-white);
-  }
-  .nav-logo-mark {
-    width: 32px; height: 32px; background: var(--ur-blue);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px; font-weight: 700; color: #fff; border-radius: 2px;
-  }
-  .nav-label { color: var(--ur-muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
-  .nav-tabs { display: flex; }
-  .nav-tab {
-    height: 64px; padding: 0 24px; border: none; background: transparent;
-    font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--ur-muted); cursor: pointer;
-    border-bottom: 2px solid transparent; transition: all .15s;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .nav-tab:hover { color: var(--ur-white); }
-  .nav-tab.active { color: var(--ur-blue); border-bottom-color: var(--ur-blue); }
-  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ur-green); display: none; }
-  .nav-tab.active .nav-dot { display: block; }
+  .brand-logo { width: 210px; height: auto; display: block; }
 
   /* ── SURVEY ── */
   .survey-wrap { max-width: 680px; margin: 0 auto; padding: 56px 24px 100px; }
@@ -160,17 +139,25 @@ const css = `
   }
   .slider-num small { font-size: 13px; font-weight: 400; color: var(--ur-muted); }
 
-  input[type=range] {
-    width: 100%; -webkit-appearance: none; height: 4px;
-    border-radius: 99px; outline: none; cursor: pointer; border: none; padding: 0;
-    background: var(--ur-subtle);
+  .slider-control {
+    position: relative; width: 100%; height: 28px; cursor: pointer;
+    touch-action: none; user-select: none; outline: none;
   }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-    background: var(--ur-blue); border: 2px solid var(--ur-dark);
-    box-shadow: 0 0 0 3px rgba(86,160,211,.25); cursor: pointer; transition: box-shadow .15s;
+  .slider-track {
+    position: absolute; left: 0; right: 0; top: 50%; height: 4px;
+    transform: translateY(-50%); border-radius: 99px; background: var(--ur-subtle);
   }
-  input[type=range]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px rgba(86,160,211,.3); }
+  .slider-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    border-radius: 99px; background: var(--ur-blue);
+  }
+  .slider-thumb {
+    position: absolute; top: 50%; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--ur-blue); border: 2px solid var(--ur-dark);
+    box-shadow: 0 0 0 3px rgba(86,160,211,.25);
+    transform: translate(-50%, -50%);
+  }
+  .slider-control:focus-visible .slider-thumb { box-shadow: 0 0 0 5px rgba(86,160,211,.35); }
   .slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--ur-muted); margin-top: 10px; letter-spacing: 0.04em; }
 
   /* ── TAGS ── */
@@ -283,8 +270,8 @@ const css = `
   .empty-text { color: var(--ur-muted); font-size: 14px; }
 
   @media (max-width: 600px) {
-    .nav { padding: 0 16px; }
-    .nav-tab { padding: 0 14px; font-size: 11px; }
+    .brand-header { padding: 0 16px; }
+    .brand-logo { width: 170px; }
     .survey-wrap, .dash-wrap { padding: 36px 16px 80px; }
     .emoji-row { gap: 5px; }
     .input-row { grid-template-columns: 1fr; }
@@ -305,18 +292,63 @@ const EMOJIS = [
 const TAGS = ["Intuitive","Confusing","Precise","Unreliable","Fast","Slow","Clear feedback","Missing feedback","Overcorrected","Hard to find"];
 
 function ScoreSlider({ name, value, onChange, left, right }) {
+  const trackRef = useRef(null);
   const pct = ((value - 1) / 9) * 100;
-  const trackBg = `linear-gradient(to right, var(--ur-blue) ${pct}%, var(--ur-subtle) ${pct}%)`;
+
+  const valueFromPointer = clientX => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return value;
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return Math.round(1 + ratio * 9);
+  };
+
+  const handlePointerMove = e => {
+    e.preventDefault();
+    onChange(valueFromPointer(e.clientX));
+  };
+
+  const handlePointerDown = e => {
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    handlePointerMove(e);
+  };
+
+  const handleKeyDown = e => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      e.preventDefault();
+      onChange(Math.max(1, value - 1));
+    }
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      e.preventDefault();
+      onChange(Math.min(10, value + 1));
+    }
+  };
+
   return (
     <div className="slider-block">
       <div className="slider-top">
         <span className="slider-name">{name}</span>
         <span className="slider-num">{value}<small>/10</small></span>
       </div>
-      <input type="range" min={1} max={10} value={value}
-        style={{ background: trackBg }}
-        onInput={e => onChange(+e.target.value)}
-        onChange={e => onChange(+e.target.value)} />
+      <div
+        className="slider-control"
+        ref={trackRef}
+        role="slider"
+        tabIndex={0}
+        aria-label={name}
+        aria-valuemin={1}
+        aria-valuemax={10}
+        aria-valuenow={value}
+        onKeyDown={handleKeyDown}
+        onPointerDown={handlePointerDown}
+        onPointerMove={e => {
+          if (e.currentTarget.hasPointerCapture?.(e.pointerId)) handlePointerMove(e);
+        }}
+      >
+        <div className="slider-track">
+          <div className="slider-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="slider-thumb" style={{ left: `${pct}%` }} />
+      </div>
       <div className="slider-labels"><span>{left}</span><span>{right}</span></div>
     </div>
   );
@@ -418,7 +450,7 @@ function SurveyView({ onSubmitted }) {
 
       <div className="field">
         <div className="field-label">Context before using joystick</div>
-        <input type="text" placeholder="When would you use joystick?" value={useCase} onChange={e => setUseCase(e.target.value)} style={{ marginBottom: 12 }} />
+        <textarea placeholder="When would you use joystick?" value={useCase} onChange={e => setUseCase(e.target.value)} style={{ marginBottom: 12 }} />
         <textarea placeholder="What do you do today instead of using joystick?" value={currentMethod} onChange={e => setCurrentMethod(e.target.value)} />
       </div>
 
@@ -619,28 +651,15 @@ function DashboardView({ refreshKey }) {
   );
 }
 
-export default function App() {
-  const [view, setView] = useState("survey");
+export default function App({ view = "survey" }) {
   const [refreshKey, setRefreshKey] = useState(0);
   return (
     <>
       <style>{css}</style>
       <div className="app">
-        <nav className="nav">
-          <div className="nav-logo">
-            <div className="nav-logo-mark">UR</div>
-            UX Research <span className="nav-label">/ Feature Feedback</span>
-          </div>
-          <div className="nav-tabs">
-            <button className={"nav-tab" + (view === "survey" ? " active" : "")} onClick={() => setView("survey")}>
-              <span className="nav-dot" />Survey
-            </button>
-            <button className={"nav-tab" + (view === "dashboard" ? " active" : "")}
-              onClick={() => { setView("dashboard"); setRefreshKey(k => k+1); }}>
-              <span className="nav-dot" />Dashboard
-            </button>
-          </div>
-        </nav>
+        <header className="brand-header">
+          <img className="brand-logo" src="/ur-teradyne-logo.svg" alt="Universal Robots, a Teradyne company" />
+        </header>
         {view === "survey"
           ? <SurveyView onSubmitted={() => setRefreshKey(k => k+1)} />
           : <DashboardView refreshKey={refreshKey} />}
