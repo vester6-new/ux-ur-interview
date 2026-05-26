@@ -315,6 +315,7 @@ function ScoreSlider({ name, value, onChange, left, right }) {
       </div>
       <input type="range" min={1} max={10} value={value}
         style={{ background: trackBg }}
+        onInput={e => onChange(+e.target.value)}
         onChange={e => onChange(+e.target.value)} />
       <div className="slider-labels"><span>{left}</span><span>{right}</span></div>
     </div>
