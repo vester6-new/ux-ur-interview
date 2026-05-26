@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { addDoc, collection, getDocs, getFirestore, orderBy, query, serverTimestamp } from "firebase/firestore";
 
 // ─── Storage helpers ───────────────────────────────────────────────
@@ -16,6 +17,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 const responsesCollection = collection(db, "responses");
 
@@ -96,14 +98,14 @@ const css = `
 
   .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-  input[type=text], textarea {
+  input[type=text], input[type=password], textarea {
     width: 100%; background: var(--ur-card); border: 1px solid var(--ur-border);
     border-radius: var(--radius); padding: 12px 16px;
     font-family: inherit; font-size: 14px; color: var(--ur-white);
     outline: none; transition: border .15s; resize: vertical;
   }
-  input[type=text]::placeholder, textarea::placeholder { color: var(--ur-muted); }
-  input[type=text]:focus, textarea:focus { border-color: var(--ur-blue); }
+  input[type=text]::placeholder, input[type=password]::placeholder, textarea::placeholder { color: var(--ur-muted); }
+  input[type=text]:focus, input[type=password]:focus, textarea:focus { border-color: var(--ur-blue); }
   textarea { min-height: 100px; }
 
   /* ── EMOJI ── */
@@ -205,6 +207,12 @@ const css = `
     cursor: pointer; transition: all .2s;
   }
   .export-btn:hover { border-color: var(--ur-blue); background: rgba(86,160,211,.1); }
+
+  .login-wrap { max-width: 420px; margin: 80px auto; padding: 0 24px; }
+  .login-card { background: var(--ur-card); border: 1px solid var(--ur-border); border-radius: var(--radius); padding: 28px; }
+  .login-title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .login-sub { color: var(--ur-muted); font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+  .login-error { color: var(--ur-orange); font-size: 12px; line-height: 1.5; margin: 12px 0 0; }
 
   /* stats */
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--ur-border); border: 1px solid var(--ur-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px; }
@@ -462,14 +470,73 @@ function SurveyView({ onSubmitted }) {
   );
 }
 
+function DashboardLogin() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setError("");
+
+    setSubmitting(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch {
+      setError("Could not sign in. Check email and password.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="login-wrap">
+      <form className="login-card" onSubmit={handleSubmit}>
+        <h2 className="login-title">Dashboard login</h2>
+        <p className="login-sub">Sign in to view interview responses.</p>
+        <div className="field">
+          <div className="field-label">Email</div>
+          <input type="text" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
+        </div>
+        <div className="field">
+          <div className="field-label">Password</div>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" />
+        </div>
+        <button className="submit-btn" type="submit" disabled={submitting}>
+          {submitting ? "Signing in..." : "Sign in"}
+        </button>
+        {error && <p className="login-error">{error}</p>}
+      </form>
+    </div>
+  );
+}
+
 function DashboardView({ refreshKey }) {
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setAuthUser(user);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!authUser) {
+      setResponses([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     loadResponses().then(r => { setResponses(r); setLoading(false); });
-  }, [refreshKey]);
+  }, [authLoading, authUser, refreshKey]);
 
   const avg = key => {
     const values = responses.map(r => r[key]).filter(v => typeof v === "number");
@@ -502,7 +569,9 @@ function DashboardView({ refreshKey }) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ux-responses.csv"; a.click();
   };
 
-  if (loading) return <div style={{ padding: 80, textAlign: "center", color: "var(--ur-muted)" }}>Loading…</div>;
+  if (authLoading) return <div style={{ padding: 80, textAlign: "center", color: "var(--ur-muted)" }}>Checking access...</div>;
+  if (!authUser) return <DashboardLogin />;
+  if (loading) return <div style={{ padding: 80, textAlign: "center", color: "var(--ur-muted)" }}>Loading...</div>;
 
   return (
     <div className="dash-wrap">
@@ -514,6 +583,7 @@ function DashboardView({ refreshKey }) {
         {responses.length > 0 && (
           <button className="export-btn" onClick={exportCSV}>⬇ Export CSV</button>
         )}
+        <button className="export-btn" onClick={() => signOut(auth)}>Sign out</button>
       </div>
 
       {responses.length === 0 ? (
