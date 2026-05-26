@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { addDoc, collection, getDocs, getFirestore, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, getFirestore, orderBy, query, serverTimestamp } from "firebase/firestore";
 
 // ─── Storage helpers ───────────────────────────────────────────────
 const firebaseConfig = {
@@ -38,6 +38,9 @@ async function saveResponse(entry) {
     });
     return loadResponses();
   } catch(e) { console.error(e); return []; }
+}
+async function deleteResponse(responseId) {
+  await deleteDoc(doc(db, "responses", responseId));
 }
 
 // ─── Styles ────────────────────────────────────────────────────────
@@ -177,11 +180,6 @@ const css = `
 
   /* ── SUCCESS ── */
   .success-wrap { max-width: 480px; margin: 80px auto; padding: 0 24px; text-align: center; }
-  .success-check {
-    width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--ur-green);
-    display: flex; align-items: center; justify-content: center; margin: 0 auto 28px;
-    font-size: 28px;
-  }
   .success-title { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
   .success-sub { color: var(--ur-muted); font-size: 15px; line-height: 1.7; margin-bottom: 36px; }
   .retry-btn {
@@ -207,6 +205,8 @@ const css = `
     cursor: pointer; transition: all .2s;
   }
   .export-btn:hover { border-color: var(--ur-blue); background: rgba(86,160,211,.1); }
+  .delete-btn { color: var(--ur-orange); }
+  .delete-btn:hover { border-color: var(--ur-orange); color: var(--ur-orange); background: rgba(232,119,58,.1); }
 
   .login-wrap { max-width: 420px; margin: 80px auto; padding: 0 24px; }
   .login-card { background: var(--ur-card); border: 1px solid var(--ur-border); border-radius: var(--radius); padding: 28px; }
@@ -366,18 +366,9 @@ function SurveyView({ onSubmitted }) {
 
   const toggleTag = t => setTags(ts => ts.includes(t) ? ts.filter(x => x !== t) : [...ts, t]);
 
-  const reset = () => {
-    setDone(false);
-    setEmoji(null);
-    setTags([]);
-    setUseCase("");
-    setCurrentMethod("");
-    setUsability(7);
-    setControl(7);
-    setFeedback(7);
-    setFriction("");
-    setMakeItTen("");
-  };
+  useEffect(() => {
+    if (done) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [done]);
 
   const handleSubmit = async () => {
     if (!emoji) { alert("Please select your overall reaction."); return; }
@@ -403,10 +394,8 @@ function SurveyView({ onSubmitted }) {
 
   if (done) return (
     <div className="success-wrap">
-      <div className="success-check">✓</div>
-      <h2 className="success-title">Response recorded</h2>
-      <p className="success-sub">Thank you — your feedback has been saved and will inform the next iteration of this feature.</p>
-      <button className="retry-btn" onClick={reset}>Submit another response</button>
+      <h2 className="success-title">Thank you</h2>
+      <p className="success-sub">Your feedback has been saved and will inform the next iteration of this feature.</p>
     </div>
   );
 
@@ -569,6 +558,20 @@ function DashboardView({ refreshKey }) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ux-responses.csv"; a.click();
   };
 
+  const handleDelete = async response => {
+    if (!response.firestoreId) return;
+    const confirmed = window.confirm("Delete this response? This cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      await deleteResponse(response.firestoreId);
+      setResponses(current => current.filter(r => r.firestoreId !== response.firestoreId));
+    } catch(e) {
+      console.error(e);
+      alert("Could not delete the response. Please try again.");
+    }
+  };
+
   if (authLoading) return <div style={{ padding: 80, textAlign: "center", color: "var(--ur-muted)" }}>Checking access...</div>;
   if (!authUser) return <DashboardLogin />;
   if (loading) return <div style={{ padding: 80, textAlign: "center", color: "var(--ur-muted)" }}>Loading...</div>;
@@ -649,6 +652,7 @@ function DashboardView({ refreshKey }) {
                   <div className="r-comment"><strong>Friction:</strong> {r.friction || [r.leastControl, r.frustration, r.comment].filter(Boolean).join(" ")}</div>
                 )}
                 {r.makeItTen && <div className="r-comment"><strong>Make it a 10:</strong> {r.makeItTen}</div>}
+                <button className="export-btn delete-btn" onClick={() => handleDelete(r)}>Delete response</button>
               </div>
             </div>
           ))}
