@@ -12,6 +12,7 @@ service cloud.firestore {
         'slug',
         'description',
         'status',
+        'rootActive',
         'fields',
         'createdAt',
         'updatedAt'
@@ -20,6 +21,7 @@ service cloud.firestore {
       request.resource.data.slug is string &&
       request.resource.data.description is string &&
       request.resource.data.status in ['draft', 'published', 'unpublished'] &&
+      (!('rootActive' in request.resource.data) || request.resource.data.rootActive is bool) &&
       request.resource.data.fields is list &&
       request.resource.data.updatedAt == request.time;
     }

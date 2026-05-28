@@ -34,14 +34,14 @@ const db = getFirestore(app);
 const interviewsCollection = collection(db, "interviews");
 
 const FIELD_TYPES = [
-  { value: "section", label: "Section" },
-  { value: "shortText", label: "Short text" },
-  { value: "longText", label: "Long text" },
-  { value: "rating", label: "Rating / slider" },
-  { value: "select", label: "Select" },
-  { value: "multiSelect", label: "Multi-select / tags" },
-  { value: "checkbox", label: "Checkbox" },
-  { value: "emoji", label: "Emoji scale" },
+  { value: "section", label: "Section", icon: "S", description: "Group questions or add intro copy." },
+  { value: "shortText", label: "Short text", icon: "T", description: "One-line written answer." },
+  { value: "longText", label: "Long text", icon: "P", description: "Longer written feedback." },
+  { value: "rating", label: "Rating", icon: "1-10", description: "Slider score from low to high." },
+  { value: "select", label: "Select", icon: "1", description: "Choose one option." },
+  { value: "multiSelect", label: "Multi-select", icon: "N", description: "Choose multiple tags/options." },
+  { value: "checkbox", label: "Checkbox", icon: "Y/N", description: "Simple yes/no confirmation." },
+  { value: "emoji", label: "Emoji", icon: ":)", description: "Reaction scale with emoji." },
 ];
 
 const DEFAULT_EMOJIS = [
@@ -55,9 +55,9 @@ const DEFAULT_EMOJIS = [
 const DEFAULT_TAGS = ["Intuitive", "Confusing", "Precise", "Unreliable", "Fast", "Slow", "Clear feedback", "Missing feedback", "Overcorrected", "Hard to find"];
 
 const DEFAULT_FIELDS = [
-  { id: "context", type: "section", label: "Context before using joystick", help: "Tell us where this feature fits into the workflow." },
-  { id: "useCase", type: "longText", label: "When would you use joystick?", placeholder: "Describe the situation or workflow.", required: false },
-  { id: "currentMethod", type: "longText", label: "What do you do today instead of using joystick?", placeholder: "Describe the current workaround.", required: false },
+  { id: "context", type: "section", label: "Context before using this feature", help: "Tell us where this feature fits into the workflow." },
+  { id: "useCase", type: "longText", label: "When would you use this feature?", placeholder: "Describe the situation or workflow.", required: false },
+  { id: "currentMethod", type: "longText", label: "What do you do today instead of using this feature?", placeholder: "Describe the current workaround.", required: false },
   { id: "reaction", type: "emoji", label: "Overall reaction", required: true, options: DEFAULT_EMOJIS },
   { id: "performance", type: "section", label: "Performance ratings" },
   { id: "usability", type: "rating", label: "Usability - how easy was it to use?", required: true, minLabel: "Very difficult", maxLabel: "Effortless" },
@@ -127,9 +127,10 @@ const css = `
   .submit-btn { padding: 13px 30px; background: var(--ur-blue); color: white; margin: 8px auto 0; }
   .submit-btn:hover { background: var(--ur-blue2); }
   .submit-btn:disabled, .export-btn:disabled, .ghost-btn:disabled, .danger-btn:disabled { opacity: .45; cursor: not-allowed; }
-  .export-btn, .ghost-btn { padding: 10px 16px; background: var(--ur-card); border-color: var(--ur-border); color: var(--ur-blue); }
-  .export-btn:hover, .ghost-btn:hover { border-color: var(--ur-blue); background: rgba(86,160,211,.1); }
-  .danger-btn { padding: 10px 16px; background: rgba(232,119,58,.1); border-color: rgba(232,119,58,.45); color: var(--ur-orange); }
+  .export-btn, .ghost-btn { padding: 10px 4px; background: transparent; border-color: transparent; color: var(--ur-blue); }
+  .export-btn:hover, .ghost-btn:hover { color: var(--ur-white); background: transparent; }
+  .danger-btn { padding: 10px 4px; background: transparent; border-color: transparent; color: var(--ur-orange); }
+  .danger-btn:hover { color: #ff9a63; }
   .success-wrap { max-width: 520px; margin: 80px auto; padding: 0 24px; text-align: center; }
   .success-title { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; }
   .success-sub { color: var(--ur-muted); font-size: 15px; line-height: 1.7; margin-bottom: 36px; }
@@ -157,6 +158,9 @@ const css = `
   .toggle input:checked + .toggle-track { background: rgba(46,204,122,.18); border-color: var(--ur-green); }
   .toggle input:checked + .toggle-track::after { transform: translateX(20px); background: var(--ur-green); }
   .toggle input:focus-visible + .toggle-track { outline: 3px solid rgba(86,160,211,.75); outline-offset: 3px; }
+  .home-picker { display: inline-flex; align-items: center; gap: 8px; color: var(--ur-muted); font-size: 11px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+  .home-picker input { accent-color: var(--ur-blue); width: 16px; height: 16px; }
+  .home-picker input:checked + span { color: var(--ur-blue); }
   .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--ur-border); border: 1px solid var(--ur-border); border-radius: var(--radius); overflow: hidden; margin-bottom: 32px; }
   .stat-card { background: var(--ur-card); padding: 24px; }
   .stat-label { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ur-muted); margin-bottom: 12px; }
@@ -196,6 +200,17 @@ const css = `
   .modal-title { font-size: 24px; font-weight: 700; }
   .builder-card { margin-bottom: 12px; }
   .builder-card.section-card { border-color: rgba(86,160,211,.45); }
+  .builder-toolbar { display: flex; justify-content: center; margin-bottom: 18px; }
+  .add-field-btn { min-width: 150px; }
+  .builder-empty { border: 1px dashed var(--ur-border); background: rgba(86,160,211,.06); border-radius: var(--radius); padding: 32px; text-align: center; margin-top: 16px; }
+  .builder-empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--ur-white); }
+  .builder-empty-text { color: var(--ur-muted); font-size: 13px; line-height: 1.7; max-width: 520px; margin: 0 auto; }
+  .field-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .field-type-btn { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; text-align: left; padding: 14px; border-radius: var(--radius); border: 1px solid var(--ur-border); background: var(--ur-card); color: var(--ur-white); cursor: pointer; transition: border-color .15s, background .15s; }
+  .field-type-btn:hover { border-color: var(--ur-blue); background: rgba(86,160,211,.08); }
+  .field-type-icon { display: inline-flex; width: 42px; height: 42px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(86,160,211,.12); color: var(--ur-blue); font-size: 12px; font-weight: 700; }
+  .field-type-label { display: block; font-weight: 700; margin-bottom: 3px; }
+  .field-type-desc { display: block; color: var(--ur-muted); font-size: 12px; line-height: 1.4; }
   .builder-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
   .tiny-btn { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--ur-border); background: transparent; color: var(--ur-muted); font-size: 10px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
   .tiny-btn:hover { color: var(--ur-blue); border-color: var(--ur-blue); }
@@ -219,13 +234,14 @@ function slugify(value) {
 }
 
 function createDefaultInterview(overrides = {}) {
-  const name = overrides.name || "New joystick feature";
+  const name = overrides.name || "New feature interview";
   return {
     name,
     slug: overrides.slug || slugify(name),
     description: overrides.description || "Rate and comment on your experience. Your response is anonymous and directly shapes the next release.",
     status: overrides.status || "draft",
-    fields: overrides.fields || DEFAULT_FIELDS,
+    rootActive: Boolean(overrides.rootActive),
+    fields: overrides.fields ?? [],
   };
 }
 
@@ -278,6 +294,7 @@ async function saveInterview(interview, currentId) {
     slug: slugify(interview.slug || interview.name),
     description: interview.description.trim(),
     status: interview.status || "draft",
+    rootActive: Boolean(interview.rootActive),
     fields: cloneFields(interview.fields),
     updatedAt: serverTimestamp(),
   };
@@ -296,6 +313,27 @@ async function saveInterview(interview, currentId) {
 
 async function updateInterviewStatus(interviewId, status) {
   await updateDoc(doc(db, "interviews", interviewId), { status, updatedAt: serverTimestamp() });
+}
+
+async function setRootInterview(interviewId) {
+  const interviews = await listInterviews();
+  await Promise.all(interviews.map(interview => updateDoc(doc(db, "interviews", interview.firestoreId), {
+    rootActive: interview.firestoreId === interviewId,
+    status: interview.firestoreId === interviewId ? "published" : interview.status,
+    updatedAt: serverTimestamp(),
+  })));
+}
+
+async function findRootInterview() {
+  const snapshot = await getDocs(query(
+    interviewsCollection,
+    where("rootActive", "==", true),
+    where("status", "==", "published"),
+    limit(1)
+  ));
+  if (snapshot.empty) return null;
+  const first = snapshot.docs[0];
+  return { firestoreId: first.id, ...first.data() };
 }
 
 async function deleteInterview(interviewId) {
@@ -691,6 +729,104 @@ function PublicInterviewView({ slug, onSubmitted }) {
   );
 }
 
+function RootInterviewView({ onSubmitted }) {
+  const [interview, setInterview] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [missingFieldId, setMissingFieldId] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    findRootInterview()
+      .then(found => {
+        if (!active) return;
+        setInterview(found);
+        setAnswers(initialAnswers(found?.fields || []));
+      })
+      .catch(error => {
+        console.error(error);
+        if (active) setInterview(null);
+      })
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (done) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [done]);
+
+  const visibleFields = useMemo(() => (interview?.fields || []).filter(field => isFieldVisible(field, answers)), [interview, answers]);
+
+  const handleSubmit = async () => {
+    const missing = visibleFields.filter(field => field.required && field.type !== "section" && isEmptyAnswer(answers[field.id]));
+    if (missing.length) {
+      setMissingFieldId(missing[0].id);
+      setFormError(`Please answer: ${missing[0].label}`);
+      return;
+    }
+
+    setFormError("");
+    setMissingFieldId("");
+    setSubmitting(true);
+    try {
+      await saveResponse(interview.firestoreId, {
+        id: Date.now(),
+        ts: new Date().toISOString(),
+        answers,
+      });
+      setDone(true);
+      onSubmitted?.();
+    } catch (error) {
+      console.error(error);
+      alert("Could not save your response. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="success-wrap"><p className="success-sub">Loading interview...</p></div>;
+  if (!interview) return <LegacyHomeView />;
+  if (done) {
+    return (
+      <div className="success-wrap">
+        <h2 className="success-title">Thank you</h2>
+        <p className="success-sub">Your feedback has been saved and will inform the next iteration of this feature.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="survey-wrap">
+      <h1 className="survey-title">Share your feedback on <span>{interview.name}</span></h1>
+      {interview.description && <p className="survey-sub">{interview.description}</p>}
+      {(interview.fields || []).map(field => (
+        <FieldRenderer
+          key={field.id}
+          field={field}
+          value={answers[field.id]}
+          answers={answers}
+          invalid={missingFieldId === field.id}
+          onChange={value => {
+            if (missingFieldId === field.id) {
+              setMissingFieldId("");
+              setFormError("");
+            }
+            setAnswers(current => ({ ...current, [field.id]: value }));
+          }}
+        />
+      ))}
+      {formError && <p className="login-error" role="alert">{formError}</p>}
+      <button className="submit-btn" type="button" onClick={handleSubmit} disabled={submitting}>
+        {submitting ? "Submitting..." : "Submit feedback"}
+      </button>
+    </div>
+  );
+}
+
 function DashboardLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -845,6 +981,7 @@ function InterviewModal({ initialInterview, currentId, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [slugTouched, setSlugTouched] = useState(Boolean(currentId));
+  const [showFieldPicker, setShowFieldPicker] = useState(false);
   const modalRef = useRef(null);
   const titleId = "interview-modal-title";
 
@@ -885,10 +1022,19 @@ function InterviewModal({ initialInterview, currentId, onClose, onSaved }) {
 
   const addField = type => {
     const id = `${type}-${Date.now().toString(36)}`;
-    const base = type === "emoji"
-      ? { id, type, label: "New emoji scale", required: false, options: cloneFields([{ value: "🙂", label: "Okay" }, { value: "🤩", label: "Great" }]) }
-      : { id, type, label: type === "section" ? "New section" : "New question", required: false };
+    const defaultsByType = {
+      section: { id, type, label: "Feature context", help: "Introduce this part of the interview." },
+      shortText: { id, type, label: "Short answer", placeholder: "Write a short answer.", required: false },
+      longText: { id, type, label: "Long answer", placeholder: "Describe your experience with this feature.", required: false },
+      rating: { id, type, label: "Rate this feature", minLabel: "Poor", maxLabel: "Excellent", required: false },
+      select: { id, type, label: "Choose one option", required: false, options: optionLinesToOptions("Option 1\nOption 2\nOption 3") },
+      multiSelect: { id, type, label: "Choose all that apply", required: false, options: optionLinesToOptions("Clear\nUseful\nConfusing\nSlow") },
+      checkbox: { id, type, label: "I agree", help: "Use this for a yes/no confirmation.", required: false },
+      emoji: { id, type, label: "Overall reaction", required: false, options: cloneFields(DEFAULT_EMOJIS) },
+    };
+    const base = defaultsByType[type] || { id, type, label: "New question", required: false };
     setInterview(current => ({ ...current, fields: [...current.fields, base] }));
+    setShowFieldPicker(false);
   };
 
   const moveField = (index, direction) => {
@@ -986,22 +1132,42 @@ function InterviewModal({ initialInterview, currentId, onClose, onSaved }) {
             </>
           ) : (
             <>
-              <div className="action-row" style={{ marginBottom: 16 }}>
-                {FIELD_TYPES.map(type => (
-                  <button key={type.value} type="button" className="ghost-btn" onClick={() => addField(type.value)}>Add {type.label}</button>
-                ))}
+              <div className="builder-toolbar">
+                <button type="button" className="submit-btn add-field-btn" onClick={() => setShowFieldPicker(current => !current)}>
+                  {showFieldPicker ? "Close field types" : "+ Add field"}
+                </button>
               </div>
-              {interview.fields.map((field, index) => (
-                <FieldBuilder
-                  key={`${field.id}-${index}`}
-                  field={field}
-                  fields={interview.fields}
-                  onChange={updated => setField(index, updated)}
-                  onDelete={() => setInterview(current => ({ ...current, fields: current.fields.filter((_, itemIndex) => itemIndex !== index) }))}
-                  onMoveUp={() => moveField(index, -1)}
-                  onMoveDown={() => moveField(index, 1)}
-                />
-              ))}
+              {showFieldPicker && (
+                <div className="field-picker" aria-label="Choose field type">
+                  {FIELD_TYPES.map(type => (
+                    <button key={type.value} type="button" className="field-type-btn" onClick={() => addField(type.value)}>
+                      <span className="field-type-icon" aria-hidden="true">{type.icon}</span>
+                      <span>
+                        <span className="field-type-label">{type.label}</span>
+                        <span className="field-type-desc">{type.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {interview.fields.length === 0 ? (
+                <div className="builder-empty">
+                  <div className="builder-empty-title">Build this interview from scratch</div>
+                  <p className="builder-empty-text">Use the add field button to choose the first question type. Start with a section if you want intro copy, then add text, rating, choice, checkbox, or emoji questions as needed.</p>
+                </div>
+              ) : (
+                interview.fields.map((field, index) => (
+                  <FieldBuilder
+                    key={`${field.id}-${index}`}
+                    field={field}
+                    fields={interview.fields}
+                    onChange={updated => setField(index, updated)}
+                    onDelete={() => setInterview(current => ({ ...current, fields: current.fields.filter((_, itemIndex) => itemIndex !== index) }))}
+                    onMoveUp={() => moveField(index, -1)}
+                    onMoveDown={() => moveField(index, 1)}
+                  />
+                ))
+              )}
             </>
           )}
           {error && <p className="login-error" role="alert">{error}</p>}
@@ -1124,6 +1290,16 @@ function DashboardView({ refreshKey }) {
     }
   };
 
+  const handleSetRootInterview = async interview => {
+    try {
+      await setRootInterview(interview.firestoreId);
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      alert("Could not set the root interview. Check Firestore rules and try again.");
+    }
+  };
+
   if (authLoading) return <div className="success-wrap"><p className="success-sub">Checking access...</p></div>;
   if (!authUser) return <DashboardLogin />;
   if (loading) return <div className="success-wrap"><p className="success-sub">Loading dashboard...</p></div>;
@@ -1170,12 +1346,23 @@ function DashboardView({ refreshKey }) {
                 <h3 className="interview-title">{interview.name}</h3>
                 <div className="meta-row">
                   <span className={`pill ${interview.status}`}>{interview.status}</span>
+                  {interview.rootActive && <span className="pill published">Root active</span>}
                   <span>/{interview.slug}</span>
                   <span>{counts[interview.firestoreId] || 0} responses</span>
                   <span>{(interview.fields || []).filter(field => field.type !== "section").length} fields</span>
                 </div>
               </div>
               <div className="action-row" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+                <label className="home-picker">
+                  <input
+                    type="radio"
+                    name="rootInterview"
+                    checked={Boolean(interview.rootActive)}
+                    onChange={() => handleSetRootInterview(interview)}
+                    aria-label={`Show ${interview.name} on the root page`}
+                  />
+                  <span>Root</span>
+                </label>
                 <label className="toggle">
                   <input
                     type="checkbox"
@@ -1415,7 +1602,7 @@ function LegacyHomeView() {
 
 export default function App({ view = "survey", slug }) {
   const [refreshKey, setRefreshKey] = useState(0);
-  let content = <LegacyHomeView />;
+  let content = <RootInterviewView onSubmitted={() => setRefreshKey(k => k + 1)} />;
   if (view === "interview") content = <PublicInterviewView slug={slug} onSubmitted={() => setRefreshKey(k => k + 1)} />;
   if (view === "dashboard") content = <DashboardView refreshKey={refreshKey} />;
   if (view === "interviewDashboard") content = <InterviewDashboardView slug={slug} refreshKey={refreshKey} />;
