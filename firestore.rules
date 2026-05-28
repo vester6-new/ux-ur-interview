@@ -2,6 +2,66 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    function hasInterviewShape() {
+      return request.resource.data.keys().hasOnly([
+        'name',
+        'slug',
+        'description',
+        'status',
+        'fields',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      request.resource.data.name is string &&
+      request.resource.data.slug is string &&
+      request.resource.data.description is string &&
+      request.resource.data.status in ['draft', 'published', 'unpublished'] &&
+      request.resource.data.fields is list &&
+      request.resource.data.updatedAt == request.time;
+    }
+
+    function isNewInterviewPayload() {
+      return hasInterviewShape() &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    function isUpdatedInterviewPayload() {
+      return hasInterviewShape() &&
+        request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function isResponsePayload() {
+      return request.resource.data.keys().hasOnly([
+        'id',
+        'ts',
+        'answers',
+        'createdAt'
+      ]) &&
+      request.resource.data.id is number &&
+      request.resource.data.ts is string &&
+      request.resource.data.answers is map &&
+      request.resource.data.createdAt == request.time;
+    }
+
+    match /interviews/{interviewId} {
+      allow get, list: if isAdmin() || resource.data.status == 'published';
+      allow create: if isAdmin() && isNewInterviewPayload();
+      allow update: if isAdmin() && isUpdatedInterviewPayload();
+      allow delete: if isAdmin();
+
+      match /responses/{responseId} {
+        allow read, delete: if isAdmin();
+        allow update: if false;
+        allow create: if
+          (isAdmin() || get(/databases/$(database)/documents/interviews/$(interviewId)).data.status == 'published') &&
+          isResponsePayload();
+      }
+    }
+
     match /responses/{responseId} {
       allow read: if request.auth != null;
 
