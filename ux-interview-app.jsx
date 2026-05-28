@@ -345,11 +345,6 @@ async function loadResponses(interviewId) {
   return snapshot.docs.map(item => ({ firestoreId: item.id, ...item.data() }));
 }
 
-async function loadLegacyResponses() {
-  const snapshot = await getDocs(query(collection(db, "responses"), orderBy("ts", "desc")));
-  return snapshot.docs.map(item => ({ firestoreId: item.id, ...item.data() }));
-}
-
 async function saveResponse(interviewId, entry) {
   await addDoc(responsesCollection(interviewId), {
     ...entry,
@@ -359,47 +354,6 @@ async function saveResponse(interviewId, entry) {
 
 async function deleteResponse(interviewId, responseId) {
   await deleteDoc(doc(db, "interviews", interviewId, "responses", responseId));
-}
-
-async function importLegacyResponses() {
-  const legacySlug = "legacy-joystick-feature";
-  let legacyInterview = await findInterviewBySlug(legacySlug);
-
-  if (!legacyInterview) {
-    const legacyId = await saveInterview({
-      ...createDefaultInterview({
-        name: "Legacy joystick feature interview",
-        slug: legacySlug,
-        status: "unpublished",
-      }),
-      fields: cloneFields(DEFAULT_FIELDS),
-    });
-    legacyInterview = { firestoreId: legacyId, slug: legacySlug };
-  }
-
-  const alreadyImported = await loadResponses(legacyInterview.firestoreId);
-  if (alreadyImported.length > 0) {
-    return { imported: 0, skipped: alreadyImported.length, slug: legacySlug };
-  }
-
-  const legacyResponses = await loadLegacyResponses();
-  await Promise.all(legacyResponses.map(response => saveResponse(legacyInterview.firestoreId, {
-    id: response.id || Date.now(),
-    ts: response.ts || new Date().toISOString(),
-    answers: {
-      useCase: response.useCase || "",
-      currentMethod: response.currentMethod || "",
-      reaction: response.emoji || "",
-      usability: response.usability,
-      control: response.control,
-      feedback: response.feedback,
-      tags: Array.isArray(response.tags) ? response.tags : [],
-      friction: response.friction || [response.leastControl, response.frustration, response.comment].filter(Boolean).join(" "),
-      makeItTen: response.makeItTen || "",
-    },
-  })));
-
-  return { imported: legacyResponses.length, skipped: 0, slug: legacySlug };
 }
 
 function ScoreSlider({ name, value, onChange, left, right, describedBy }) {
@@ -1214,7 +1168,6 @@ function DashboardView({ refreshKey }) {
   const [loading, setLoading] = useState(true);
   const [modalInterview, setModalInterview] = useState(null);
   const [modalId, setModalId] = useState(null);
-  const [importingLegacy, setImportingLegacy] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -1272,24 +1225,6 @@ function DashboardView({ refreshKey }) {
     exportResponsesCsv(interview, responses);
   };
 
-  const handleImportLegacy = async () => {
-    setImportingLegacy(true);
-    try {
-      const result = await importLegacyResponses();
-      await refresh();
-      if (result.imported > 0) {
-        alert(`Imported ${result.imported} legacy responses into /dashboard/${result.slug}.`);
-      } else {
-        alert(`Legacy responses were already imported (${result.skipped} existing responses found).`);
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Could not import legacy responses. Check Firestore rules and try again.");
-    } finally {
-      setImportingLegacy(false);
-    }
-  };
-
   const handleSetRootInterview = async interview => {
     try {
       await setRootInterview(interview.firestoreId);
@@ -1313,9 +1248,6 @@ function DashboardView({ refreshKey }) {
         </div>
         <div className="action-row">
           <button type="button" className="submit-btn" onClick={() => openModal(null)}>Add new interview</button>
-          <button type="button" className="export-btn" onClick={handleImportLegacy} disabled={importingLegacy}>
-            {importingLegacy ? "Importing..." : "Import legacy responses"}
-          </button>
           <button type="button" className="export-btn" onClick={() => signOut(auth)}>Sign out</button>
         </div>
       </div>
