@@ -1,7 +1,10 @@
 node_modules/
 .next/
+.angular/
 out/
+out-tsc/
 dist/
+tmp-tsc/
 .env*
 .DS_Store
 npm-debug.log*
